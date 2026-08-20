@@ -9,9 +9,13 @@ const port = process.env.PORT || 2002;
 
 app.use(express.json());
 
+const allowedorigin = {
+  origin: ["http://localhost:3003", "https://mongo-db-cruds-frn.vercel.app"],
+};
+
 app.use(
   cors({
-    origin: process.env.SITE_URL || "http://localhost:3003",
+    origin: allowedorigin,
     methods: "*",
   }),
 );
