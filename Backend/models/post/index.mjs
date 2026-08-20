@@ -1,0 +1,17 @@
+import mongoose from "mongoose";
+const PostSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { timestamps: true },
+);
+export const PostModel = mongoose.model("posts", PostSchema);
