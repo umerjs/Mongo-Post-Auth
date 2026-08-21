@@ -1,13 +1,18 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { FrontendUrl } from "../Frontend/src/core.ts";
 import { connect_db } from "./libs/mongodb.mjs";
-import { authRoutes, postRoutes } from "./routes/index.mjs";
+import { authGuard } from "./middlewares/index.mjs";
+import {
+  authRoutes,
+  postRoutes,
+  profileRoutes,
+  passwordRoutes,
+} from "./routes/index.mjs";
 
 const app = express();
 const port = process.env.PORT || 2002;
-const origin = FrontendUrl;
+const origin = process.env.FRONTEND_URL || "http://localhost:3003";
 
 app.use(express.json());
 
@@ -27,7 +32,10 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1", postRoutes);
+app.use("/api/v1", authGuard);
 app.use("/api/v1", authRoutes);
+app.use("/api/v1", profileRoutes);
+app.use("/api/v1", passwordRoutes);
 
 const startServer = async () => {
   try {
