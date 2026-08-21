@@ -10,7 +10,7 @@ export const connect_db = async () => {
 
   try {
     await mongoose.connect(uri, {
-      dbName: "mongodb-crud",
+      dbName: "mongodb-auth-crud",
     });
 
     console.log("Mongoose connected successfully");

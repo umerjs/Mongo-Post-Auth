@@ -1,16 +1,18 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { FrontendUrl } from "../Frontend/src/core.ts";
 import { connect_db } from "./libs/mongodb.mjs";
 import { authRoutes, postRoutes } from "./routes/index.mjs";
 
 const app = express();
 const port = process.env.PORT || 2002;
+const origin = FrontendUrl;
 
 app.use(express.json());
 
 const allowedorigin = {
-  origin: ["http://localhost:3003", "https://mongo-db-cruds-frn.vercel.app"],
+  origin: ["http://localhost:3003", origin],
 };
 
 app.use(
