@@ -1,5 +1,5 @@
 import express from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { UserModel } from "../../models/index.mjs";
 import { isValidObjectId } from "mongoose";
 import jwt from "jsonwebtoken";
@@ -103,7 +103,7 @@ router.post("/auth/login", async (req, res, next) => {
         email: user.email,
         _id: user._id,
       },
-      process.env.JWT_KEY,
+      process.env.JWT_SECRET,
       { expiresIn: "15d" },
     );
     return res.send({

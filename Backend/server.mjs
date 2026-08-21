@@ -31,9 +31,9 @@ app.get("/", (req, res) => {
   res.send("MongoDB is Running");
 });
 
-app.use("/api/v1", postRoutes);
-app.use("/api/v1", authGuard);
 app.use("/api/v1", authRoutes);
+app.use("/api/v1", authGuard);
+app.use("/api/v1", postRoutes);
 app.use("/api/v1", profileRoutes);
 app.use("/api/v1", passwordRoutes);
 
