@@ -1,7 +1,7 @@
 import React from "react";
 interface ButtonProps {
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: "text" | "number";
+  type?: "text" | "number" | "password" | "email";
   placeholder?: string;
   value?: string | number;
   label?: string;

@@ -4,32 +4,49 @@ import { UserModel } from "../../models/index.mjs";
 
 const router = express.Router();
 
-router.put("/password", async (req, res, next) => {
+router.put("/password", async (req, res) => {
   try {
-    const currentPassword = res.body.currentPassword;
-    const newPassword = res.body.newPassword;
-    const isPassTrue = bcrypt.compare(
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).send({
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        message: "New password must be at least 6 characters",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
       currentPassword,
       req.current_user.password,
     );
-    if (!isPassTrue) {
+
+    if (!isPasswordValid) {
       return res.status(400).send({
-        message: "Invalid Password",
+        message: "Invalid current password",
       });
     }
-    const newhash = await bcrypt.hash(newPassword, 12);
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
     await UserModel.findByIdAndUpdate(req.current_user._id, {
-      password: newhash,
+      password: newPasswordHash,
     });
 
     return res.status(200).send({
-      message: "Password Updated Successfully",
+      message: "Password updated successfully",
     });
   } catch (error) {
     console.error(error);
+
     return res.status(500).send({
       message: "Internal Server Error",
     });
   }
 });
+
 export default router;
