@@ -15,14 +15,16 @@ const Input = ({
 }: ButtonProps) => {
   return (
     <div className="flex flex-col">
-      <label>{label}</label>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <input
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         required
-        className="border border-blue-600 rounded-sm px-2"
+        className="border border-blue-600 rounded-sm px-2 h-9"
       />
     </div>
   );

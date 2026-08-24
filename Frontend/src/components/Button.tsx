@@ -10,7 +10,7 @@ const Button = ({ onClick, children, type = "submit" }: ButtonProps) => {
   return (
     <button
       type={type}
-      className="bg-blue-500 rounded-sm w-50 cursor-pointer text-white"
+      className=" position-relative left-20 bg-blue-500 rounded-sm w-70 cursor-pointer text-white h-10 flex justify-center items-center"
       onClick={onClick}
     >
       {children}

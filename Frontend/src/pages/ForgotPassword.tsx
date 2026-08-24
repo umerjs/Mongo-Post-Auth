@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Input from "../components/Input";
+import Input from "../components/PasswordInput";
 import Button from "../components/Button";
 import { BackendUrl } from "../core";
 
@@ -101,7 +101,6 @@ const ForgotPassword = () => {
             <Input
               placeholder="Enter current password"
               label="Current Password"
-              type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
@@ -109,7 +108,6 @@ const ForgotPassword = () => {
             <Input
               placeholder="Enter new password"
               label="New Password"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
@@ -117,7 +115,6 @@ const ForgotPassword = () => {
             <Input
               placeholder="Confirm new password"
               label="Confirm New Password"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />

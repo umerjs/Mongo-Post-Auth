@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PasswordInput from "../components/PasswordInput";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { Link, useNavigate } from "react-router-dom";
@@ -112,18 +113,16 @@ const Signup = () => {
               onChange={(e) => setEmail(e.target.value)}
             />
 
-            <Input
+            <PasswordInput
               placeholder="Enter password"
               label="Password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <Input
+            <PasswordInput
               placeholder="Confirm password"
               label="Confirm password"
-              type="password"
               value={repPassword}
               onChange={(e) => setRepPassword(e.target.value)}
             />
