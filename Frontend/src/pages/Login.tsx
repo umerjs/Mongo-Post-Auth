@@ -5,8 +5,10 @@ import Button from "../components/Button";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BackendUrl } from "../core";
+import { store } from "../store/states";
 
 const Login = () => {
+  const { login } = store();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState<string>("");
@@ -38,12 +40,14 @@ const Login = () => {
     }
 
     try {
-      await axios.post(`${BackendUrl}/api/v1/login`, {
+      const response = await axios.post(`${BackendUrl}/api/v1/auth/login`, {
         email: email.trim(),
         password,
       });
 
       alert("Login Done");
+      localStorage.setItem("token", response.data.token);
+      login(response.data.user);
       navigate("/");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

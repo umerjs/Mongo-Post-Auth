@@ -16,13 +16,9 @@ const origin = process.env.FRONTEND_URL || "http://localhost:3003";
 
 app.use(express.json());
 
-const allowedorigin = {
-  origin: ["http://localhost:3003", origin],
-};
-
 app.use(
   cors({
-    origin: allowedorigin,
+    origin: ["http://localhost:3003", origin],
     methods: "*",
   }),
 );
@@ -32,7 +28,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1", authRoutes);
-app.use("/api/v1", authGuard);
 app.use("/api/v1", postRoutes);
 app.use("/api/v1", profileRoutes);
 app.use("/api/v1", passwordRoutes);

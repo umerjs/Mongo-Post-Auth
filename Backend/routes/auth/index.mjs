@@ -51,14 +51,26 @@ router.post("/auth/signup", async (req, res, next) => {
       });
     }
     const passwordHash = await bcrypt.hash(password, 12);
-    await UserModel.create({
+    const newUser = await UserModel.create({
       firstname,
       lastname,
       email,
       password: passwordHash,
     });
+    const token = jwt.sign(
+      { email: newUser.email, _id: newUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "15d" },
+    );
     return res.send({
       message: "Done",
+      token,
+      user: {
+        id: newUser._id,
+        firstname: newUser.firstname,
+        lastname: newUser.lastname,
+        email: newUser.email,
+      },
     });
   } catch (error) {
     console.log(error);
@@ -115,7 +127,6 @@ router.post("/auth/login", async (req, res, next) => {
         lastname: user.lastname,
         email: user.email,
       },
-      message: "Done",
     });
   } catch (error) {
     console.log(error);
