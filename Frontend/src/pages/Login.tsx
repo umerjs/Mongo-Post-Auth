@@ -97,7 +97,9 @@ const Login = () => {
               </Link>
             </div>
 
-            <Button>Login</Button>
+            <Button className="bg-blue-500 rounded-sm w-full h-10 flex justify-center items-center text-white cursor-pointer hover:bg-blue-600">
+              Login
+            </Button>
           </form>
 
           <div className="mt-6 border-t border-slate-100 pt-6 text-center">

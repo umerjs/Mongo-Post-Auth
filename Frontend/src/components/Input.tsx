@@ -23,8 +23,7 @@ const Input = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        required
-        className="border border-blue-600 rounded-sm px-2 h-9"
+        className="border border-gray-300 rounded-sm px-2 h-9 focus:outline-none focus:border-blue-500"
       />
     </div>
   );

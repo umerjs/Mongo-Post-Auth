@@ -26,6 +26,12 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       match: [passwordPattern, "Please enter a valid Password"],
     },
+    username: {
+      type: String,
+      trim: true,
+      unique: true,
+      required: true,
+    },
     profileimg: {
       type: String,
       trim: true,

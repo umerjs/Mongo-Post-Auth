@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BackendUrl } from "../core";
-import {store} from "../store/states";
+import { store } from "../store/states";
 
 const Signup = () => {
   const { login } = store();
@@ -13,6 +13,7 @@ const Signup = () => {
 
   const [firstname, setFirstname] = useState<string>("");
   const [lastname, setLastname] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [repPassword, setRepPassword] = useState<string>("");
@@ -27,6 +28,11 @@ const Signup = () => {
 
     if (!lastname.trim()) {
       alert("Lastname is required");
+      return;
+    }
+
+    if (!username.trim()) {
+      alert("Username is required");
       return;
     }
 
@@ -61,13 +67,14 @@ const Signup = () => {
       const response = await axios.post(`${BackendUrl}/api/v1/auth/signup`, {
         firstname: firstname.trim(),
         lastname: lastname.trim(),
+        username: username.trim(),
         email: email.trim(),
         password,
       });
 
       alert("Signup Done");
       localStorage.setItem("token", response.data.token);
-      login(response.data.user)
+      login(response.data.user);
       navigate("/");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
@@ -110,6 +117,13 @@ const Signup = () => {
             </div>
 
             <Input
+              placeholder="Enter username"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+
+            <Input
               placeholder="Enter email"
               label="Email"
               type="email"
@@ -131,7 +145,9 @@ const Signup = () => {
               onChange={(e) => setRepPassword(e.target.value)}
             />
 
-            <Button>Signup</Button>
+            <Button className="bg-blue-500 rounded-sm w-full h-10 flex justify-center items-center text-white cursor-pointer hover:bg-blue-600">
+              Signup
+            </Button>
           </form>
 
           <div className="mt-6 border-t border-slate-100 pt-6 text-center">

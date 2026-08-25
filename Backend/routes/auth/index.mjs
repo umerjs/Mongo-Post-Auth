@@ -50,12 +50,28 @@ router.post("/auth/signup", async (req, res, next) => {
         message: "Email already taken",
       });
     }
+
+    const username = req.body.username?.trim();
+    if (!username) {
+      return res.status(400).send({
+        message: "Username is Required",
+      });
+    }
+
+    const existingUsername = await UserModel.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).send({
+        message: "Username already taken",
+      });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const newUser = await UserModel.create({
       firstname,
       lastname,
       email,
       password: passwordHash,
+      username,
     });
     const token = jwt.sign(
       { email: newUser.email, _id: newUser._id },
@@ -70,6 +86,7 @@ router.post("/auth/signup", async (req, res, next) => {
         firstname: newUser.firstname,
         lastname: newUser.lastname,
         email: newUser.email,
+        username: newUser.username,
       },
     });
   } catch (error) {
@@ -126,6 +143,7 @@ router.post("/auth/login", async (req, res, next) => {
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
+        username: user.username,
       },
     });
   } catch (error) {
