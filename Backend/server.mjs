@@ -30,17 +30,6 @@ app.use("/api/v1", postRoutes);
 app.use("/api/v1", profileRoutes);
 app.use("/api/v1", passwordRoutes);
 
-const startServer = async () => {
-  try {
-    await connect_db();
+connect_db().catch(console.error);
 
-    app.listen(port, () => {
-      console.log(`Server is running on ${port}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
-};
-
-startServer();
+export default app;
