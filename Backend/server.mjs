@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { connect_db } from "./libs/mongodb.mjs";
-import { authGuard } from "./middlewares/index.mjs";
 import {
   authRoutes,
   postRoutes,
@@ -12,7 +11,7 @@ import {
 
 const app = express();
 const port = process.env.PORT || 2002;
-const origin = process.env.FRONTEND_URL || "http://localhost:3003";
+const origin = process.env.VITE_FRONTEND_URL || "http://localhost:3003";
 
 app.use(express.json());
 
