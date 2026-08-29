@@ -11,14 +11,15 @@ import {
 const app = express();
 const port = process.env.PORT || 2002;
 
-app.use(express.json());
+const corsOptions = {
+  origin: ["https://mongo-post-auth-frn.vercel.app", "http://localhost:3003"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  credentials: true,
+};
 
-app.use(
-  cors({
-    origin: ["https://mongo-post-auth-frn.vercel.app", "http://*.localhost:3003"],
-    methods: "*",
-  }),
-);
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("MongoDB is Running");
