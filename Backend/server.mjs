@@ -10,13 +10,12 @@ import {
 } from "./routes/index.mjs";
 const app = express();
 const port = process.env.PORT || 2002;
-const origin = process.env.FRONTEND_URL || "http://localhost:3003";
 
 app.use(express.json());
 
 app.use(
   cors({
-    origin: ["http://localhost:3003", origin],
+    origin: ["https://mongo-post-auth-frn.vercel.app", "http://*.localhost:3003"],
     methods: "*",
   }),
 );
