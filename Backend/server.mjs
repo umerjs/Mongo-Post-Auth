@@ -8,10 +8,10 @@ import {
   profileRoutes,
   passwordRoutes,
 } from "./routes/index.mjs";
-
+import { FrontendUrl} from "../Frontend/src/core.ts"
 const app = express();
 const port = process.env.PORT || 2002;
-const origin = process.env.VITE_FRONTEND_URL || "http://localhost:3003";
+const origin = FrontendUrl || "http://localhost:3003";
 
 app.use(express.json());
 
