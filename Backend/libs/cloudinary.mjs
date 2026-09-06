@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -7,27 +6,30 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadOnCloudinary = async (file, userId) => {
-  if (!file?.path) {
-    throw new Error("File path is missing");
+/**
+ * Uploads an in-memory file buffer (from multer.memoryStorage()) to Cloudinary.
+ * No temp file is written to disk, so there's nothing to clean up afterward.
+ */
+export const uploadOnCloudinary = (file, userId) => {
+  if (!file?.buffer) {
+    return Promise.reject(new Error("File buffer is missing"));
   }
 
-  try {
-    const result = await cloudinary.uploader.upload(file.path, {
-      resource_type: "image",
-      asset_folder: `users/${userId}/avatar`,
-    });
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        asset_folder: `users/${userId}/avatar`,
+      },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary upload failed:", error);
+          return reject(error);
+        }
+        resolve(result);
+      },
+    );
 
-    return result;
-  } catch (error) {
-    console.error("Cloudinary upload failed:", error);
-    throw error;
-  } finally {
-    // Delete temporary file from your server
-    fs.unlink(file.path, (err) => {
-      if (err) {
-        console.error("Failed to delete temporary file:", err);
-      }
-    });
-  }
+    uploadStream.end(file.buffer);
+  });
 };

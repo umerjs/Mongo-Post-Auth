@@ -1,7 +1,7 @@
 import express from "express";
 import { UserModel } from "../../models/index.mjs";
 import { authGuard } from "../../middlewares/index.mjs";
-import { multerMiddleware } from "../../libs/multer.mjs";
+import { handleAvatarUpload } from "../../libs/multer.mjs";
 import { uploadOnCloudinary } from "../../libs/cloudinary.mjs";
 
 const router = express.Router();
@@ -15,94 +15,66 @@ router.get("/profile", authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).send({
-      message: "Internal Server Error",
-    });
+    return res.status(500).send({ message: "Internal Server Error" });
   }
 });
 
-// UPDATE PROFILE
+// UPDATE PROFILE (text fields)
 router.put("/profile", authGuard, async (req, res) => {
   try {
     const { firstname, lastname, username } = req.body;
-
     const user = await UserModel.findById(req.current_user._id);
 
     if (!user) {
-      return res.status(404).send({
-        message: "User not found",
-      });
+      return res.status(404).send({ message: "User not found" });
     }
 
-    if (firstname) {
-      user.firstname = firstname;
-    }
-
-    if (lastname) {
-      user.lastname = lastname;
-    }
+    if (firstname) user.firstname = firstname;
+    if (lastname) user.lastname = lastname;
 
     if (username !== undefined) {
       const trimmedUsername = username?.trim();
 
       if (!trimmedUsername) {
-        return res.status(400).send({
-          message: "Username cannot be empty",
-        });
+        return res.status(400).send({ message: "Username cannot be empty" });
       }
 
       const existingUsername = await UserModel.findOne({
         username: trimmedUsername,
         _id: { $ne: user._id },
       });
+
       if (existingUsername) {
-        return res.status(400).send({
-          message: "Username already taken",
-        });
+        return res.status(400).send({ message: "Username already taken" });
       }
+
       user.username = trimmedUsername;
     }
 
     await user.save();
 
-    return res.status(200).send({
-      message: "Profile Updated",
-      data: user,
-    });
+    return res.status(200).send({ message: "Profile Updated", data: user });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).send({
-      message: "Internal Server Error",
-    });
+    return res.status(500).send({ message: "Internal Server Error" });
   }
 });
+
+// UPDATE AVATAR
 router.put(
   "/profile/avatar",
   authGuard,
-  (req, res, next) => {
-    multerMiddleware.single("avatar")(req, res, (err) => {
-      if (err) {
-        return res.status(400).send({ message: err.message });
-      }
-      next();
-    });
-  },
+  handleAvatarUpload,
   async (req, res) => {
     try {
+      if (!req.file) {
+        return res.status(400).send({ message: "No file uploaded" });
+      }
+
       const user = await UserModel.findById(req.current_user._id);
 
       if (!user) {
-        return res.status(404).send({
-          message: "User not found",
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).send({
-          message: "No file uploaded",
-        });
+        return res.status(404).send({ message: "User not found" });
       }
 
       const result = await uploadOnCloudinary(
@@ -113,16 +85,10 @@ router.put(
       user.profileimg = result.secure_url;
       await user.save();
 
-      return res.status(200).send({
-        message: "Avatar Updated",
-        data: user,
-      });
+      return res.status(200).send({ message: "Avatar Updated", data: user });
     } catch (error) {
       console.error(error);
-
-      return res.status(500).send({
-        message: "Internal Server Error",
-      });
+      return res.status(500).send({ message: "Internal Server Error" });
     }
   },
 );
