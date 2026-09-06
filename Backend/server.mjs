@@ -18,17 +18,16 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("/{*path}", cors(corsOptions));
 app.use(express.json());
-
 app.get("/", (req, res) => {
   res.send("MongoDB is Running");
 });
 
-app.use("/api/v1", authRoutes);
-app.use("/api/v1", postRoutes);
-app.use("/api/v1", profileRoutes);
-app.use("/api/v1", passwordRoutes);
+app.use("/api/v1", authRoutes, postRoutes, profileRoutes, passwordRoutes);
+
+app.listen(port, () => {
+  console.log(`Server is running on port http://localhost:${port}`);
+});
 
 connect_db().catch(console.error);
 

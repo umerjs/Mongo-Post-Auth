@@ -20,7 +20,11 @@ const Post = () => {
 
   const getallposts = async () => {
     try {
-      const response = await axios.get(`${BackendUrl}/api/v1/post/`);
+      const response = await axios.get(`${BackendUrl}/api/v1/post/`, {
+        headers: {
+          token: localStorage.getItem("token"),
+        },
+      });
 
       const postsData = response.data?.data ?? [];
 
@@ -39,7 +43,11 @@ const Post = () => {
     }
 
     try {
-      await axios.delete(`${BackendUrl}/api/v1/post/${id}`);
+      await axios.delete(`${BackendUrl}/api/v1/post/${id}`, {
+        headers: {
+          token: localStorage.getItem("token"),
+        },
+      });
 
       alert("Post deleted successfully");
 
@@ -72,10 +80,16 @@ const Post = () => {
     }
 
     try {
-      await axios.put(`${BackendUrl}/api/v1/post/${id}`, {
-        title: updatedTitle,
-        description: updatedDescription,
-      });
+      await axios.put(
+        `${BackendUrl}/api/v1/post/${id}`,
+        {
+          title: updatedTitle,
+          description: updatedDescription,
+        },
+        {
+          headers: { token: localStorage.getItem("token") },
+        },
+      );
 
       alert("Post updated successfully");
 

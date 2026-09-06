@@ -1,6 +1,8 @@
 import express from "express";
 import { UserModel } from "../../models/index.mjs";
 import { authGuard } from "../../middlewares/index.mjs";
+import { multerMiddleware } from "../../libs/multer.mjs";
+import { uploadOnCloudinary } from "../../libs/cloudinary.mjs";
 
 const router = express.Router();
 
@@ -76,5 +78,53 @@ router.put("/profile", authGuard, async (req, res) => {
     });
   }
 });
+router.put(
+  "/profile/avatar",
+  authGuard,
+  (req, res, next) => {
+    multerMiddleware.single("avatar")(req, res, (err) => {
+      if (err) {
+        return res.status(400).send({ message: err.message });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      const user = await UserModel.findById(req.current_user._id);
+
+      if (!user) {
+        return res.status(404).send({
+          message: "User not found",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).send({
+          message: "No file uploaded",
+        });
+      }
+
+      const result = await uploadOnCloudinary(
+        req.file,
+        req.current_user._id.toString(),
+      );
+
+      user.profileimg = result.secure_url;
+      await user.save();
+
+      return res.status(200).send({
+        message: "Avatar Updated",
+        data: user,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).send({
+        message: "Internal Server Error",
+      });
+    }
+  },
+);
 
 export default router;
