@@ -1,13 +1,15 @@
 import express from "express";
 import { UserModel } from "../../models/index.mjs";
 import { authGuard } from "../../middlewares/index.mjs";
-import { handleAvatarUpload } from "../../libs/multer.mjs";
 import { uploadOnCloudinary } from "../../libs/cloudinary.mjs";
+import { multerMiddleware } from "../../libs/multer.mjs";
 
 const router = express.Router();
 
+router.use(authGuard);
+
 // GET PROFILE
-router.get("/profile", authGuard, async (req, res) => {
+router.get("/profile", async (req, res) => {
   try {
     return res.status(200).send({
       message: "Profile Fetched",
@@ -20,7 +22,7 @@ router.get("/profile", authGuard, async (req, res) => {
 });
 
 // UPDATE PROFILE (text fields)
-router.put("/profile", authGuard, async (req, res) => {
+router.put("/profile", async (req, res) => {
   try {
     const { firstname, lastname, username } = req.body;
     const user = await UserModel.findById(req.current_user._id);
@@ -61,36 +63,39 @@ router.put("/profile", authGuard, async (req, res) => {
 });
 
 // UPDATE AVATAR
-router.put(
-  "/profile/avatar",
-  authGuard,
-  handleAvatarUpload,
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).send({ message: "No file uploaded" });
-      }
-
-      const user = await UserModel.findById(req.current_user._id);
-
-      if (!user) {
-        return res.status(404).send({ message: "User not found" });
-      }
-
-      const result = await uploadOnCloudinary(
-        req.file,
-        req.current_user._id.toString(),
-      );
-
-      user.profileimg = result.secure_url;
-      await user.save();
-
-      return res.status(200).send({ message: "Avatar Updated", data: user });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).send({ message: "Internal Server Error" });
+router.put("/profile/avatar", multerMiddleware.any(), async (req, res) => {
+  try {
+    const file = req.files?.[0];
+    if (!file) {
+      return res.status(400).send({ message: "No file uploaded" });
     }
-  },
-);
+    if (!file.mimetype.startsWith("image")) {
+      return res.status(400).send({
+        message: "only images are allowed",
+      });
+    }
+    if (file.size > 2000000) {
+      return res.status(400).send({
+        message: "file upload limit is 2mb",
+      });
+    }
+
+    const user = await UserModel.findById(req.current_user._id);
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    const result = await uploadOnCloudinary(file);
+
+    user.profileimg = result.secure_url;
+    await user.save();
+
+    return res.status(200).send({ message: "Avatar Updated", data: user });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({ message: "Internal Server Error" });
+  }
+});
 
 export default router;

@@ -13,6 +13,7 @@ const Profile = () => {
   const [lastname, setLastname] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
@@ -72,6 +73,49 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 2_000_000) {
+      alert("Image must be smaller than 2 MB");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+    setAvatarLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        `${BackendUrl}/api/v1/profile/avatar`,
+        formData,
+        {
+          headers: {
+            authorizedtoken: token,
+          },
+        },
+      );
+
+      setUser(response.data.data);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        alert(error.response?.data?.message || "Avatar upload failed");
+      } else {
+        alert("Avatar upload failed");
+      }
+    } finally {
+      setAvatarLoading(false);
+      e.target.value = "";
+    }
+  };
+
   const initial = user?.firstname?.charAt(0).toUpperCase() || "?";
 
   return (
@@ -94,9 +138,29 @@ const Profile = () => {
 
             {/* Avatar */}
             <div className="mb-6 flex justify-center">
-              <span className="grid h-24 w-24 place-items-center rounded-full bg-blue-600 text-3xl font-bold text-white">
-                {initial}
-              </span>
+              <label className="group relative cursor-pointer">
+                {user?.profileimg ? (
+                  <img
+                    src={user.profileimg}
+                    alt="Profile"
+                    className="h-24 w-24 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="grid h-24 w-24 place-items-center rounded-full bg-blue-600 text-3xl font-bold text-white">
+                    {initial}
+                  </span>
+                )}
+                <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/60 py-1 text-center text-xs text-white opacity-0 transition group-hover:opacity-100">
+                  Change
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  disabled={avatarLoading}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {editing ? (
