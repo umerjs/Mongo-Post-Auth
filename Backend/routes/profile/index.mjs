@@ -17,7 +17,10 @@ router.get("/profile", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({ message: "Internal Server Error" });
+    return res.status(500).send({
+      message: "Avatar upload failed",
+      error: error.message,
+    });
   }
 });
 
