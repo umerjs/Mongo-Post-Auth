@@ -8,11 +8,18 @@ cloudinary.config({
 
 export const uploadOnCloudinary = async (file) => {
   return new Promise((resolve, reject) => {
-    try {
-      cloudinary.uploader.upload(file.path).then((result) => resolve(result));
-    } catch (error) {
-      console.error(error);
-      reject(error);
-    }
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "image" },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      },
+    );
+
+    uploadStream.end(file.buffer);
   });
 };
