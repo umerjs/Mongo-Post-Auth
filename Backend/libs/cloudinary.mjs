@@ -7,19 +7,20 @@ cloudinary.config({
 });
 
 export const uploadOnCloudinary = async (file) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { resource_type: "image" },
-      (error, result) => {
-        if (error) {
-          reject(error);
-          return;
-        }
+  try {
+    if (!file?.path) {
+      throw new Error("File path is missing");
+    }
 
-        resolve(result);
-      },
-    );
+    const result = await cloudinary.uploader.upload(file.path, {
+      resource_type: "auto",
+    });
 
-    uploadStream.end(file.buffer);
-  });
+    return result;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    throw error;
+  }
 };
+
+export default cloudinary;
