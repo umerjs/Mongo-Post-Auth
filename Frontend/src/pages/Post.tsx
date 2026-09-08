@@ -1,17 +1,27 @@
 import Form from "../components/Form";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import "../index.css";
 import { BackendUrl } from "../core";
 import Navbar from "../components/Navbar";
+import { store } from "../store/states";
 
 interface Post {
-  _id: number;
+  _id: string;
   title: string;
   description: string;
+  userId: {
+    _id: string;
+    firstname: string;
+    lastname: string;
+    username: string;
+    profileimg?: string | null;
+  };
 }
 
 const Post = () => {
+  const { user } = store();
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
@@ -22,7 +32,7 @@ const Post = () => {
     try {
       const response = await axios.get(`${BackendUrl}/api/v1/post/`, {
         headers: {
-          token: localStorage.getItem("token"),
+          authorizedtoken: localStorage.getItem("token"),
         },
       });
 
@@ -36,7 +46,7 @@ const Post = () => {
     }
   };
 
-  const delete_post = async (id: number) => {
+  const delete_post = async (id: string) => {
     if (!id) {
       alert("Post id is required");
       return;
@@ -45,7 +55,7 @@ const Post = () => {
     try {
       await axios.delete(`${BackendUrl}/api/v1/post/${id}`, {
         headers: {
-          token: localStorage.getItem("token"),
+          authorizedtoken: localStorage.getItem("token"),
         },
       });
 
@@ -58,7 +68,7 @@ const Post = () => {
   };
 
   const update_post = async (
-    id: number,
+    id: string,
     title: string,
     description: string,
   ) => {
@@ -87,7 +97,9 @@ const Post = () => {
           description: updatedDescription,
         },
         {
-          headers: { token: localStorage.getItem("token") },
+          headers: {
+            authorizedtoken: localStorage.getItem("token"),
+          },
         },
       );
 
@@ -126,6 +138,41 @@ const Post = () => {
                   key={post._id}
                   className="rounded-xl bg-white p-6 shadow-lg transition hover:shadow-xl"
                 >
+                  {/* User Profile */}
+                  <div className="mb-5">
+                    <Link
+                      to={`/profile/${post.userId.username}`}
+                      className="flex items-center gap-3"
+                    >
+                      {/* Profile Image */}
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-lg font-bold text-indigo-600">
+                        {post.userId.profileimg ? (
+                          <img
+                            src={post.userId.profileimg}
+                            alt={`${post.userId.firstname} ${post.userId.lastname}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span>
+                            {post.userId.firstname?.charAt(0).toUpperCase() ||
+                              "U"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* User Information */}
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {post.userId.firstname} {post.userId.lastname}
+                        </p>
+
+                        <p className="text-sm text-gray-500">
+                          @{post.userId.username}
+                        </p>
+                      </div>
+                    </Link>
+                  </div>
+
                   {/* Title */}
                   <h2 className="text-2xl font-bold text-gray-800">
                     {post.title}
@@ -135,27 +182,28 @@ const Post = () => {
                   <p className="mt-3 leading-relaxed text-gray-600">
                     {post.description}
                   </p>
+                  {/* Action Buttons */}
+                  {user?._id === post.userId._id && (
+                    <div className="mt-5 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          update_post(post._id, post.title, post.description)
+                        }
+                        className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+                      >
+                        Update
+                      </button>
 
-                  {/* Actions */}
-                  <div className="mt-5 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        update_post(post._id, post.title, post.description)
-                      }
-                      className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
-                    >
-                      Update
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => delete_post(post._id)}
-                      className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => delete_post(post._id)}
+                        className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

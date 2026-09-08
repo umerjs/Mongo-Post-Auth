@@ -23,10 +23,18 @@ const Form = ({ getallposts }: FormProps) => {
     }
 
     try {
-      const response = await axios.post(`${BackendUrl}/api/v1/post`, {
-        title,
-        description,
-      });
+      const response = await axios.post(
+        `${BackendUrl}/api/v1/post`,
+        {
+          title,
+          description,
+        },
+        {
+          headers: {
+            authorizedtoken: localStorage.getItem("token"),
+          },
+        },
+      );
 
       console.log("Post created:", response.data.post);
       getallposts();

@@ -40,11 +40,3 @@ export const uploadOnCloudinary = (file, folder = "avatars") =>
 
     streamifier.createReadStream(file.buffer).pipe(stream);
   });
-cloudinary.api
-  .ping()
-  .then((result) => {
-    console.log("Cloudinary connection:", result);
-  })
-  .catch((error) => {
-    console.error("Cloudinary connection failed:", error);
-  });

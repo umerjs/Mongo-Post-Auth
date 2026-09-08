@@ -17,6 +17,7 @@ router.post("/post", async (req, res) => {
     await PostModel.create({
       title: req.body.title,
       description: req.body.description,
+      userId: req.current_user._id,
     });
 
     return res.status(201).send({
@@ -32,7 +33,7 @@ router.post("/post", async (req, res) => {
 
 router.get("/post", async (req, res) => {
   try {
-    const allPosts = await PostModel.find();
+    const allPosts = await PostModel.find().populate("userId");
 
     return res.send({
       message: "Posts Found",
@@ -86,7 +87,12 @@ router.delete("/post/:postId", async (req, res) => {
         error: "Invalid Id",
       });
     }
-
+    const post = await PostModel.findById(postId);
+    if (req.current_user._id.toString() !== post.userId.toString()) {
+      return res.status(401).send({
+        error: "You are not authorized to delete this post",
+      });
+    }
     await PostModel.findByIdAndDelete(postId);
 
     return res.send({
@@ -106,6 +112,12 @@ router.put("/post/:postId", async (req, res) => {
     if (!isValidObjectId(postId)) {
       return res.status(400).send({
         error: "Invalid Id",
+      });
+    }
+    const post = await PostModel.findById(postId);
+    if (req.current_user._id.toString() !== post.userId.toString()) {
+      return res.status(401).send({
+        error: "You are not authorized to update this post",
       });
     }
 
