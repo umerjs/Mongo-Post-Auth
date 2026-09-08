@@ -64,41 +64,52 @@ router.put("/profile", async (req, res) => {
     return res.status(500).send({ message: "Internal Server Error" });
   }
 });
-
 // UPDATE AVATAR
-router.put("/profile/avatar", multerMiddleware.any(), async (req, res) => {
-  try {
-    const file = req.files?.[0];
-    if (!file) {
-      return res.status(400).send({ message: "No file uploaded" });
-    }
-    if (!file.mimetype.startsWith("image")) {
-      return res.status(400).send({
-        message: "only images are allowed",
+router.put(
+  "/profile/avatar",
+  multerMiddleware.single("avatar"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).send({
+          message: "No file uploaded",
+        });
+      }
+
+      if (!file.mimetype.startsWith("image/")) {
+        return res.status(400).send({
+          message: "Only images are allowed",
+        });
+      }
+
+      const user = await UserModel.findById(req.current_user._id);
+
+      if (!user) {
+        return res.status(404).send({
+          message: "User not found",
+        });
+      }
+
+      const result = await uploadOnCloudinary(file);
+
+      user.profileimg = result.secure_url;
+
+      await user.save();
+
+      return res.status(200).send({
+        message: "Avatar Updated",
+        data: user,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).send({
+        message: "Internal Server Error",
       });
     }
-    if (file.size > 2000000) {
-      return res.status(400).send({
-        message: "file upload limit is 2mb",
-      });
-    }
-
-    const user = await UserModel.findById(req.current_user._id);
-
-    if (!user) {
-      return res.status(404).send({ message: "User not found" });
-    }
-
-    const result = await uploadOnCloudinary(file);
-
-    user.profileimg = result.secure_url;
-    await user.save();
-
-    return res.status(200).send({ message: "Avatar Updated", data: user });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({ message: "Internal Server Error" });
-  }
-});
+  },
+);
 
 export default router;
