@@ -141,7 +141,7 @@ const Post = () => {
                   {/* User Profile */}
                   <div className="mb-5">
                     <Link
-                      to={`/profile/${post.userId.username}`}
+                      to={`/profile/${post.userId._id}`}
                       className="flex items-center gap-3"
                     >
                       {/* Profile Image */}

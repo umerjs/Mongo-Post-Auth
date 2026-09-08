@@ -3,42 +3,108 @@ import axios from "axios";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import Navbar from "../components/Navbar";
+import ProfileInfoItem from "../components/ProfileInfoItem";
 import { BackendUrl } from "../core";
-import { store } from "../store/states";
+import { store, type User } from "../store/states";
+import { useParams } from "react-router-dom";
+import { CiEdit } from "react-icons/ci";
 
 const Profile = () => {
-  const { user, setUser } = store();
+  const params = useParams<{ userId: string }>();
+  const userId = params.userId;
+
+  const { setUser } = store();
+
+  const [profileUser, setProfileUser] = useState<User | null>(null);
 
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [username, setUsername] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setFirstname(user.firstname || "");
-      setLastname(user.lastname || "");
-      setUsername(user.username || "");
-    }
-  }, [user]);
+    getOtherProfile();
+    getOtherUserPosts();
+  }, [userId]);
 
   const handleCancel = () => {
-    if (user) {
-      setFirstname(user.firstname || "");
-      setLastname(user.lastname || "");
-      setUsername(user.username || "");
+    if (profileUser) {
+      setFirstname(profileUser.firstname || "");
+      setLastname(profileUser.lastname || "");
+      setUsername(profileUser.username || "");
     }
+
     setEditing(false);
+  };
+
+  const getOtherProfile = async () => {
+    setProfileLoading(true);
+
+    try {
+      const profileEndpoint = userId
+        ? `${BackendUrl}/api/v1/profile/${userId}`
+        : `${BackendUrl}/api/v1/profile`;
+
+      const response = await axios.get(profileEndpoint, {
+        headers: {
+          authorizedtoken: localStorage.getItem("token"),
+        },
+      });
+
+      const profileData: User = response.data.data;
+
+      setProfileUser(profileData);
+      setFirstname(profileData.firstname || "");
+      setLastname(profileData.lastname || "");
+      setUsername(profileData.username || "");
+
+      if (!userId) {
+        setUser(profileData);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const getOtherUserPosts = async () => {
+    try {
+      const response = await axios.get(
+        `${BackendUrl}/api/v1/profile/posts/${userId}`,
+        {
+          headers: {
+            authorizedtoken: localStorage.getItem("token"),
+          },
+        },
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.error("Error While fetching other user's posts:", error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!firstname.trim()) return alert("Firstname is required");
-    if (!lastname.trim()) return alert("Lastname is required");
-    if (!username.trim()) return alert("Username is required");
+    if (!firstname.trim()) {
+      alert("Firstname is required");
+      return;
+    }
+
+    if (!lastname.trim()) {
+      alert("Lastname is required");
+      return;
+    }
+
+    if (!username.trim()) {
+      alert("Username is required");
+      return;
+    }
 
     setLoading(true);
 
@@ -59,8 +125,12 @@ const Profile = () => {
         },
       );
 
-      setUser(response.data.data);
+      const updatedUser: User = response.data.data;
+
+      setProfileUser(updatedUser);
+      setUser(updatedUser);
       setEditing(false);
+
       alert("Profile updated successfully");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
@@ -75,24 +145,29 @@ const Profile = () => {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
+      e.target.value = "";
       return;
     }
 
     if (file.size > 2_000_000) {
       alert("Image must be smaller than 2 MB");
+      e.target.value = "";
       return;
     }
 
     const formData = new FormData();
     formData.append("avatar", file);
+
     setAvatarLoading(true);
 
     try {
       const token = localStorage.getItem("token");
+
       const response = await axios.put(
         `${BackendUrl}/api/v1/profile/avatar`,
         formData,
@@ -103,7 +178,10 @@ const Profile = () => {
         },
       );
 
-      setUser(response.data.data);
+      const updatedUser: User = response.data.data;
+
+      setProfileUser(updatedUser);
+      setUser(updatedUser);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         alert(error.response?.data?.message || "Avatar upload failed");
@@ -116,56 +194,105 @@ const Profile = () => {
     }
   };
 
-  const initial = user?.firstname?.charAt(0).toUpperCase() || "?";
+  const initial = profileUser?.firstname?.charAt(0).toUpperCase() || "?";
 
   return (
     <>
       <Navbar />
 
-      <div className="min-h-screen bg-gray-100 px-4 py-10">
-        <div className="mx-auto flex w-full max-w-md items-center justify-center">
-          <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 text-center">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-100 px-4 py-10 font-sans">
+        <div className="mx-auto max-w-md w-full">
+          <div className="bg-white rounded-3xl shadow-lg p-8 border border-gray-200">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
                 {editing ? "Edit Profile" : "My Profile"}
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="text-sm text-slate-500">
                 {editing
-                  ? "Update your personal information"
-                  : "Your account details"}
+                  ? "Update your personal information."
+                  : "Manage your account details."}
               </p>
             </div>
 
             {/* Avatar */}
-            <div className="mb-6 flex justify-center">
-              <label className="group relative cursor-pointer">
-                {user?.profileimg ? (
-                  <img
-                    src={user.profileimg}
-                    alt="Profile"
-                    className="h-24 w-24 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="grid h-24 w-24 place-items-center rounded-full bg-blue-600 text-3xl font-bold text-white">
-                    {initial}
-                  </span>
+            <div className="flex justify-center mb-8 relative">
+              <div className="relative">
+                {/* Avatar Image */}
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-200">
+                  {profileLoading ? (
+                    <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                      <div className="h-6 w-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                    </div>
+                  ) : profileUser?.profileimg ? (
+                    <img
+                      src={profileUser.profileimg}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full bg-linear-to-br from-blue-400 to-blue-600 text-white font-bold text-xl uppercase">
+                      {initial}
+                    </div>
+                  )}
+                </div>
+
+                {/* Edit Avatar Button */}
+                {!userId && (
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 cursor-pointer bg-blue-600 hover:bg-blue-700 p-2 rounded-full shadow-lg transition"
+                    title="Change profile picture"
+                  >
+                    {avatarLoading ? (
+                      <svg
+                        className="h-4 w-4 animate-spin text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="9"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M12 3a9 9 0 0 1 9 9h-3a6 6 0 0 0-6-6V3z"
+                        />
+                      </svg>
+                    ) : (
+                      <CiEdit className="h-5 w-5 text-white" />
+                    )}
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </label>
                 )}
-                <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/60 py-1 text-center text-xs text-white opacity-0 transition group-hover:opacity-100">
-                  Change
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  disabled={avatarLoading}
-                  className="hidden"
-                />
-              </label>
+              </div>
             </div>
 
-            {editing ? (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Content Area */}
+            {profileLoading ? (
+              <div className="space-y-4">
+                <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+              </div>
+            ) : editing && !userId ? (
+              // Edit Form
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     placeholder="Enter firstname"
                     label="Firstname"
@@ -179,7 +306,6 @@ const Profile = () => {
                     onChange={(e) => setLastname(e.target.value)}
                   />
                 </div>
-
                 <Input
                   placeholder="Enter username"
                   label="Username"
@@ -187,68 +313,68 @@ const Profile = () => {
                   onChange={(e) => setUsername(e.target.value)}
                 />
 
-                <div className="flex gap-3">
+                {/* Buttons */}
+                <div className="flex gap-3 mt-4">
                   <Button
                     type="button"
                     onClick={handleCancel}
-                    className="flex-1 rounded-sm border border-gray-300 bg-white h-10 flex justify-center items-center text-gray-700 cursor-pointer hover:bg-gray-50"
+                    disabled={loading}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 font-semibold rounded-xl py-3 transition"
                   >
                     Cancel
                   </Button>
                   <Button
-                    className="flex-1 bg-blue-500 rounded-sm h-10 flex justify-center items-center text-white cursor-pointer hover:bg-blue-600 disabled:opacity-50"
+                    type="submit"
                     disabled={loading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 transition"
                   >
-                    {loading ? "Saving..." : "Save Changes"}
+                    {loading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent border-b-transparent rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </div>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </Button>
                 </div>
               </form>
             ) : (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <span className="mb-2 block text-sm font-medium text-gray-500">
-                      Firstname
-                    </span>
-                    <span className="block rounded-sm border border-gray-300 px-3 py-2 text-gray-900 font-medium">
-                      {user?.firstname || "-"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="mb-2 block text-sm font-medium text-gray-500">
-                      Lastname
-                    </span>
-                    <span className="block rounded-sm border border-gray-300 px-3 py-2 text-gray-900 font-medium">
-                      {user?.lastname || "-"}
-                    </span>
-                  </div>
+              // Profile Details View
+              <div className="space-y-4 text-slate-800">
+                {/* Firstname & Lastname */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ProfileInfoItem
+                    label="Firstname"
+                    value={profileUser?.firstname || "-"}
+                  />
+                  <ProfileInfoItem
+                    label="Lastname"
+                    value={profileUser?.lastname || "-"}
+                  />
                 </div>
+                {/* Username */}
+                <ProfileInfoItem
+                  label="Username"
+                  value={`@${profileUser?.username || "-"}`}
+                />
+                {/* Email */}
+                <ProfileInfoItem
+                  label="Email"
+                  value={profileUser?.email || "-"}
+                />
 
-                <div>
-                  <span className="mb-2 block text-sm font-medium text-gray-500">
-                    Username
-                  </span>
-                  <span className="block rounded-sm border border-gray-300 px-3 py-2 text-gray-900 font-medium">
-                    @{user?.username || "-"}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="mb-2 block text-sm font-medium text-gray-500">
-                    Email
-                  </span>
-                  <span className="block rounded-sm border border-gray-300 px-3 py-2 text-gray-900 font-medium">
-                    {user?.email || "-"}
-                  </span>
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="bg-blue-500 rounded-sm w-full h-10 flex justify-center items-center text-white cursor-pointer hover:bg-blue-600"
-                >
-                  Update Profile
-                </Button>
+                {/* Edit Button */}
+                {!userId && (
+                  <Button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 shadow-md transition active:scale-95"
+                  >
+                    <CiEdit className="inline-block mr-2 h-5 w-5" />
+                    Update Profile
+                  </Button>
+                )}
               </div>
             )}
           </div>

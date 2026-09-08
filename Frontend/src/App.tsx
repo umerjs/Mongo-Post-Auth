@@ -8,7 +8,6 @@ import Signup from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import Loading from "./components/SplashScreen";
-
 import { BackendUrl } from "./core";
 import { store } from "./store/states";
 
@@ -55,6 +54,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Posts />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:userId" element={<Profile />} />
 
         {/* Redirect login/signup pages to home */}
         <Route path="/login" element={<Navigate to="/" replace />} />

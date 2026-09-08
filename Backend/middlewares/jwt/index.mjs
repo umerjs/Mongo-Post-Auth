@@ -15,7 +15,25 @@ export const authGuard = async (req, res, next) => {
     }
 
     //3. verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          message: "Token has expired",
+          expiredAt: error.expiredAt,
+        });
+      }
+      if (error.name === "JsonWebTokenError") {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token",
+        });
+      }
+      throw error;
+    }
 
     //4. ensure decoded id exists
     if (!decoded._id) {

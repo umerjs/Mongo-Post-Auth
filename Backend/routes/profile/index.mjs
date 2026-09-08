@@ -23,6 +23,53 @@ router.get("/profile", async (req, res) => {
     });
   }
 });
+router.get("/profile/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId || req.current_user._id;
+    const user = await UserModel.findById({ _id: userId });
+
+    if (!user) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).send({
+      message: "Other Profile Fetched",
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      message: "Avatar upload failed",
+      error: error.message,
+    });
+  }
+});
+router.get("/profile/posts/:userId", async (req, res) => {
+  try {
+    const userPosts = await Post.findById({ _id: req.params.userId }).populate(
+      "userId",
+    );
+
+    if (!userPosts) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).send({
+      message: "Other Profile Fetched",
+      data: userPosts,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      message: "Avatar upload failed",
+      error: error.message,
+    });
+  }
+});
 
 // UPDATE PROFILE (text fields)
 router.put("/profile", async (req, res) => {
@@ -111,5 +158,27 @@ router.put(
     }
   },
 );
+router.delete("/profile", async (req, res) => {
+  try {
+    const user = await UserModel.findById({ _id: req.current_user._id });
+
+    if (!user) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    await user.remove();
+
+    return res.status(200).send({
+      message: "Profile deleted",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      message: "Internal Server Error",
+    });
+  }
+});
 
 export default router;

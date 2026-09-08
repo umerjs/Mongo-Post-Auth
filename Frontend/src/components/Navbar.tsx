@@ -1,42 +1,14 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { FiBarChart2, FiLogOut } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Button from "./Button";
-import { BackendUrl } from "../core";
 import { store } from "../store/states";
 
 const Navbar = () => {
-  const { user, setUser, logout } = store();
+  const { user, logout } = store();
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    const getProfile = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          return;
-        }
-
-        const response = await axios.get(`${BackendUrl}/api/v1/profile`, {
-          headers: {
-            authorizedtoken: token,
-          },
-        });
-
-        console.log("Profile:", response.data);
-
-        setUser(response.data.data);
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      }
-    };
-
-    getProfile();
-  }, [setUser]);
 
   const profileImg = user?.profileimg;
   const initial = user?.firstname?.charAt(0).toUpperCase() || "?";
@@ -50,7 +22,9 @@ const Navbar = () => {
             <FiBarChart2 className="h-5 w-5" />
           </span>
 
-          <span className="text-lg font-bold text-gray-800">Polling App</span>
+         <Link to="/">
+             <span className="text-lg font-bold text-gray-800">Polling App</span>
+          </Link>
         </div>
 
         {/* Right Side */}
