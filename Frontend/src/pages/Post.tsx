@@ -11,6 +11,7 @@ interface Post {
   _id: string;
   title: string;
   description: string;
+  postImage?: string | null;
   userId: {
     _id: string;
     firstname: string;
@@ -172,7 +173,15 @@ const Post = () => {
                       </div>
                     </Link>
                   </div>
-
+                  {post.postImage && (
+                    <div className="mb-4 w-full overflow-hidden rounded-lg aspect-video">
+                      <img
+                        src={post.postImage}
+                        alt={post.title}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
                   {/* Title */}
                   <h2 className="text-2xl font-bold text-gray-800">
                     {post.title}

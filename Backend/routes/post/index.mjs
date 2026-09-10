@@ -1,39 +1,75 @@
 import express from "express";
 import { PostModel } from "../../models/index.mjs";
 import { isValidObjectId } from "mongoose";
+import { authGuard } from "../../middlewares/index.mjs";
+import { multerMiddleware, handleMulterError } from "../../libs/multer.mjs";
+import { uploadOnCloudinary } from "../../libs/cloudinary.mjs";
 
 const router = express.Router();
 
-router.post("/post", async (req, res) => {
-  try {
-    if (!req.body.title) {
-      return res.status(400).send({ error: "Title is Required" });
+// Create Post
+router.post(
+  "/post",
+  authGuard,
+  handleMulterError("postImage"),
+  async (req, res) => {
+    try {
+      const { title, description } = req.body;
+
+      if (!title?.trim()) {
+        return res.status(400).send({
+          error: "Title is Required",
+        });
+      }
+
+      if (!description?.trim()) {
+        return res.status(400).send({
+          error: "Description is Required",
+        });
+      }
+
+      let postImage = null;
+
+      // Image is optional
+      if (req.file) {
+        if (!req.file.mimetype.startsWith("image/")) {
+          return res.status(400).send({
+            message: "Only images are allowed",
+          });
+        }
+
+        const result = await uploadOnCloudinary(req.file, "posts");
+
+        postImage = result.secure_url;
+      }
+
+      const post = await PostModel.create({
+        title: title.trim(),
+        description: description.trim(),
+        postImage,
+        userId: req.current_user._id,
+      });
+
+      return res.status(201).send({
+        message: "Post Created",
+        data: post,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).send({
+        error: "Internal Server Error",
+      });
     }
+  },
+);
 
-    if (!req.body.description) {
-      return res.status(400).send({ error: "Description is Required" });
-    }
-
-    await PostModel.create({
-      title: req.body.title,
-      description: req.body.description,
-      userId: req.current_user._id,
-    });
-
-    return res.status(201).send({
-      message: "Post Created",
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({
-      error: "Internal Server Error",
-    });
-  }
-});
-
+// Get All Posts
 router.get("/post", async (req, res) => {
   try {
-    const allPosts = await PostModel.find().populate("userId");
+    const allPosts = await PostModel.find()
+      .populate("userId")
+      .sort({ createdAt: -1 });
 
     return res.send({
       message: "Posts Found",
@@ -41,24 +77,25 @@ router.get("/post", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
     return res.status(500).send({
       error: "Internal Server Error",
     });
   }
 });
 
+// Get Single Post
 router.get("/post/:postId", async (req, res) => {
   try {
     const postId = req.params.postId;
 
-    // Validate ID before querying MongoDB
     if (!isValidObjectId(postId)) {
       return res.status(400).send({
         error: "Invalid Id",
       });
     }
 
-    const singlePost = await PostModel.findById(postId);
+    const singlePost = await PostModel.findById(postId).populate("userId");
 
     if (!singlePost) {
       return res.status(404).send({
@@ -72,27 +109,38 @@ router.get("/post/:postId", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
     return res.status(500).send({
       error: "Internal Server Error",
     });
   }
 });
-router.delete("/post/:postId", async (req, res) => {
+
+// Delete Post
+router.delete("/post/:postId", authGuard, async (req, res) => {
   try {
     const postId = req.params.postId;
 
-    // Validate ID before querying MongoDB
     if (!isValidObjectId(postId)) {
       return res.status(400).send({
         error: "Invalid Id",
       });
     }
+
     const post = await PostModel.findById(postId);
+
+    if (!post) {
+      return res.status(404).send({
+        message: "Post Not Found",
+      });
+    }
+
     if (req.current_user._id.toString() !== post.userId.toString()) {
-      return res.status(401).send({
+      return res.status(403).send({
         error: "You are not authorized to delete this post",
       });
     }
+
     await PostModel.findByIdAndDelete(postId);
 
     return res.send({
@@ -100,12 +148,15 @@ router.delete("/post/:postId", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
     return res.status(500).send({
       error: "Internal Server Error",
     });
   }
 });
-router.put("/post/:postId", async (req, res) => {
+
+// Update Post
+router.put("/post/:postId", authGuard, async (req, res) => {
   try {
     const postId = req.params.postId;
 
@@ -114,25 +165,47 @@ router.put("/post/:postId", async (req, res) => {
         error: "Invalid Id",
       });
     }
+
     const post = await PostModel.findById(postId);
-    if (req.current_user._id.toString() !== post.userId.toString()) {
-      return res.status(401).send({
-        error: "You are not authorized to update this post",
-      });
-    }
 
-    const updatedPost = await PostModel.findByIdAndUpdate(postId, {
-      $set: {
-        title: req.body.title,
-        description: req.body.description,
-      },
-    });
-
-    if (!updatedPost) {
+    if (!post) {
       return res.status(404).send({
         message: "Post Not Found",
       });
     }
+
+    if (req.current_user._id.toString() !== post.userId.toString()) {
+      return res.status(403).send({
+        error: "You are not authorized to update this post",
+      });
+    }
+
+    const { title, description } = req.body;
+
+    if (!title?.trim()) {
+      return res.status(400).send({
+        error: "Title is Required",
+      });
+    }
+
+    if (!description?.trim()) {
+      return res.status(400).send({
+        error: "Description is Required",
+      });
+    }
+
+    const updatedPost = await PostModel.findByIdAndUpdate(
+      postId,
+      {
+        $set: {
+          title: title.trim(),
+          description: description.trim(),
+        },
+      },
+      {
+        new: true,
+      },
+    );
 
     return res.send({
       message: "Post Updated",
@@ -146,4 +219,5 @@ router.put("/post/:postId", async (req, res) => {
     });
   }
 });
+
 export default router;

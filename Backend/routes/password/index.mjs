@@ -1,10 +1,11 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../../models/index.mjs";
+import { authGuard } from "../../middlewares/index.mjs";
 
 const router = express.Router();
 
-router.put("/password", async (req, res) => {
+router.put("/password", authGuard, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 

@@ -44,10 +44,11 @@ const ForgotPassword = () => {
     try {
       setLoading(true);
 
-      const response = await axios.put(`${BackendUrl}/api/v1/password`, {
-        currentPassword,
-        newPassword,
-      });
+      const response = await axios.put(
+        `${BackendUrl}/api/v1/password`,
+        { currentPassword, newPassword },
+        { headers: { authorizedtoken: localStorage.getItem("token") } },
+      );
 
       alert(response.data.message || "Password updated successfully");
 

@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
+import sharp from "sharp";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,27 +9,47 @@ cloudinary.config({
   secure: true,
 });
 
-export const uploadOnCloudinary = (file, folder = "avatars") =>
-  new Promise((resolve, reject) => {
-    if (!file?.buffer) {
-      return reject(
-        new Error("A file buffer is required for Cloudinary upload"),
-      );
-    }
+export const uploadOnCloudinary = async (
+  file,
+  folder = "avatars",
+  publicId = null,
+) => {
+  if (!file?.buffer) {
+    throw new Error("A file buffer is required for Cloudinary upload");
+  }
 
-    const appFolder = process.env.CLOUDINARY_APP_FOLDER;
+  const appFolder = process.env.CLOUDINARY_APP_FOLDER;
 
-    if (!appFolder) {
-      return reject(new Error("CLOUDINARY_APP_FOLDER is not configured"));
-    }
+  if (!appFolder) {
+    throw new Error("CLOUDINARY_APP_FOLDER is not configured");
+  }
 
-    const cloudinaryFolder = `${appFolder}/${folder}`;
+  // Resize image before uploading
+  const isAvatar = folder === "avatars";
+  const resizedBuffer = await sharp(file.buffer)
+    .resize(
+      isAvatar
+        ? { width: 500, height: 500, fit: "cover", position: "center" }
+        : { width: 1280, withoutEnlargement: true },
+    )
+    .jpeg({ quality: 80 })
+    .toBuffer();
 
+  const cloudinaryFolder = `${appFolder.replace(/\/+$/, "")}/${folder}`;
+
+  const uploadOptions = {
+    folder: cloudinaryFolder,
+    resource_type: "image",
+    overwrite: Boolean(publicId),
+  };
+
+  if (publicId) {
+    uploadOptions.public_id = publicId;
+  }
+
+  return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: cloudinaryFolder,
-        resource_type: "image",
-      },
+      uploadOptions,
       (error, result) => {
         if (error) {
           return reject(error);
@@ -38,5 +59,6 @@ export const uploadOnCloudinary = (file, folder = "avatars") =>
       },
     );
 
-    streamifier.createReadStream(file.buffer).pipe(stream);
+    streamifier.createReadStream(resizedBuffer).pipe(stream);
   });
+};

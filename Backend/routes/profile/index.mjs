@@ -1,8 +1,8 @@
 import express from "express";
-import { UserModel } from "../../models/index.mjs";
+import { UserModel, PostModel } from "../../models/index.mjs";
 import { authGuard } from "../../middlewares/index.mjs";
 import { uploadOnCloudinary } from "../../libs/cloudinary.mjs";
-import { multerMiddleware } from "../../libs/multer.mjs";
+import { multerMiddleware, handleMulterError } from "../../libs/multer.mjs";
 
 const router = express.Router();
 
@@ -19,6 +19,24 @@ router.get("/profile", async (req, res) => {
     console.error(error);
     return res.status(500).send({
       message: "Avatar upload failed",
+      error: error.message,
+    });
+  }
+});
+router.get("/profile/posts/:userId", async (req, res) => {
+  try {
+    const userPosts = await PostModel.find({
+      userId: req.params.userId,
+    }).populate("userId");
+
+    return res.status(200).send({
+      message: "User Posts Fetched",
+      data: userPosts,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      message: "Internal Server Error",
       error: error.message,
     });
   }
@@ -46,32 +64,7 @@ router.get("/profile/:userId", async (req, res) => {
     });
   }
 });
-router.get("/profile/posts/:userId", async (req, res) => {
-  try {
-    const userPosts = await Post.findById({ _id: req.params.userId }).populate(
-      "userId",
-    );
 
-    if (!userPosts) {
-      return res.status(404).send({
-        message: "User not found",
-      });
-    }
-
-    return res.status(200).send({
-      message: "Other Profile Fetched",
-      data: userPosts,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({
-      message: "Avatar upload failed",
-      error: error.message,
-    });
-  }
-});
-
-// UPDATE PROFILE (text fields)
 router.put("/profile", async (req, res) => {
   try {
     const { firstname, lastname, username } = req.body;
@@ -114,7 +107,7 @@ router.put("/profile", async (req, res) => {
 // UPDATE AVATAR
 router.put(
   "/profile/avatar",
-  multerMiddleware.single("avatar"),
+  handleMulterError("avatar"),
   async (req, res) => {
     try {
       const file = req.file;
@@ -168,7 +161,7 @@ router.delete("/profile", async (req, res) => {
       });
     }
 
-    await user.remove();
+    await UserModel.findByIdAndDelete(req.current_user._id);
 
     return res.status(200).send({
       message: "Profile deleted",

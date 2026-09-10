@@ -6,29 +6,44 @@ import Navbar from "../components/Navbar";
 import ProfileInfoItem from "../components/ProfileInfoItem";
 import { BackendUrl } from "../core";
 import { store, type User } from "../store/states";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { CiEdit } from "react-icons/ci";
 
-const Profile = () => {
-  const params = useParams<{ userId: string }>();
-  const userId = params.userId;
+interface Post {
+  _id: string;
+  title: string;
+  description: string;
+  userId: {
+    _id: string;
+    firstname: string;
+    lastname: string;
+    username: string;
+    profileimg?: string;
+  };
+}
 
-  const { setUser } = store();
+const Profile = () => {
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  const { setUser, user } = store();
 
   const [profileUser, setProfileUser] = useState<User | null>(null);
-
+  const isOwnProfile =
+    !userId || (!!profileUser && profileUser._id === user?._id);
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [username, setUsername] = useState("");
-
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    getOtherProfile();
-    getOtherUserPosts();
+    getProfile();
+    if (userId) getUserPosts();
+    setEditing(false);
   }, [userId]);
 
   const handleCancel = () => {
@@ -37,25 +52,26 @@ const Profile = () => {
       setLastname(profileUser.lastname || "");
       setUsername(profileUser.username || "");
     }
-
     setEditing(false);
   };
 
-  const getOtherProfile = async () => {
+  const getProfile = async () => {
     setProfileLoading(true);
-
     try {
-      const profileEndpoint = userId
+      const endpoint = userId
         ? `${BackendUrl}/api/v1/profile/${userId}`
         : `${BackendUrl}/api/v1/profile`;
 
-      const response = await axios.get(profileEndpoint, {
-        headers: {
-          authorizedtoken: localStorage.getItem("token"),
-        },
+      const response = await axios.get(endpoint, {
+        headers: { authorizedtoken: localStorage.getItem("token") },
       });
 
       const profileData: User = response.data.data;
+
+      if (userId && user?._id === profileData._id) {
+        navigate("/profile", { replace: true });
+        return;
+      }
 
       setProfileUser(profileData);
       setFirstname(profileData.firstname || "");
@@ -64,53 +80,41 @@ const Profile = () => {
 
       if (!userId) {
         setUser(profileData);
+        getUserPosts(profileData._id);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching profile:", error);
     } finally {
       setProfileLoading(false);
     }
   };
 
-  const getOtherUserPosts = async () => {
+  const getUserPosts = async (resolvedId?: string) => {
+    const targetId = resolvedId || userId || user?._id;
+    if (!targetId) return;
+    setPostsLoading(true);
     try {
       const response = await axios.get(
-        `${BackendUrl}/api/v1/profile/posts/${userId}`,
-        {
-          headers: {
-            authorizedtoken: localStorage.getItem("token"),
-          },
-        },
+        `${BackendUrl}/api/v1/profile/posts/${targetId}`,
+        { headers: { authorizedtoken: localStorage.getItem("token") } },
       );
-      console.log(response.data);
+      setPosts(response.data.data || []);
     } catch (error) {
-      console.error("Error While fetching other user's posts:", error);
+      console.error("Error fetching user posts:", error);
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!firstname.trim()) {
-      alert("Firstname is required");
-      return;
-    }
-
-    if (!lastname.trim()) {
-      alert("Lastname is required");
-      return;
-    }
-
-    if (!username.trim()) {
-      alert("Username is required");
-      return;
-    }
+    if (!firstname.trim()) return alert("Firstname is required");
+    if (!lastname.trim()) return alert("Lastname is required");
+    if (!username.trim()) return alert("Username is required");
 
     setLoading(true);
-
     try {
-      const token = localStorage.getItem("token");
-
       const response = await axios.put(
         `${BackendUrl}/api/v1/profile`,
         {
@@ -118,21 +122,14 @@ const Profile = () => {
           lastname: lastname.trim(),
           username: username.trim(),
         },
-        {
-          headers: {
-            authorizedtoken: token,
-          },
-        },
+        { headers: { authorizedtoken: localStorage.getItem("token") } },
       );
-
       const updatedUser: User = response.data.data;
-
       setProfileUser(updatedUser);
       setUser(updatedUser);
       setEditing(false);
-
       alert("Profile updated successfully");
-    } catch (error: unknown) {
+    } catch (error) {
       if (axios.isAxiosError(error)) {
         alert(error.response?.data?.message || "Update failed");
       } else {
@@ -145,7 +142,6 @@ const Profile = () => {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -162,27 +158,18 @@ const Profile = () => {
 
     const formData = new FormData();
     formData.append("avatar", file);
-
     setAvatarLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-
       const response = await axios.put(
         `${BackendUrl}/api/v1/profile/avatar`,
         formData,
-        {
-          headers: {
-            authorizedtoken: token,
-          },
-        },
+        { headers: { authorizedtoken: localStorage.getItem("token") } },
       );
-
       const updatedUser: User = response.data.data;
-
       setProfileUser(updatedUser);
       setUser(updatedUser);
-    } catch (error: unknown) {
+    } catch (error) {
       if (axios.isAxiosError(error)) {
         alert(error.response?.data?.message || "Avatar upload failed");
       } else {
@@ -199,31 +186,33 @@ const Profile = () => {
   return (
     <>
       <Navbar />
-
-      <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-100 px-4 py-10 font-sans">
+      <div className="min-h-screen bg-slate-50 px-4 py-10">
         <div className="mx-auto max-w-md w-full">
           <div className="bg-white rounded-3xl shadow-lg p-8 border border-gray-200">
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                {editing ? "Edit Profile" : "My Profile"}
+                {editing && isOwnProfile
+                  ? "Edit Profile"
+                  : isOwnProfile
+                    ? "My Profile"
+                    : "User Profile"}
               </h1>
               <p className="text-sm text-slate-500">
-                {editing
+                {editing && isOwnProfile
                   ? "Update your personal information."
-                  : "Manage your account details."}
+                  : isOwnProfile
+                    ? "Manage your account details."
+                    : "View this user's profile."}
               </p>
             </div>
 
             {/* Avatar */}
-            <div className="flex justify-center mb-8 relative">
+            <div className="flex justify-center mb-8">
               <div className="relative">
-                {/* Avatar Image */}
-                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-200">
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg flex items-center justify-center bg-blue-600">
                   {profileLoading ? (
-                    <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                      <div className="h-6 w-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-                    </div>
+                    <div className="h-6 w-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
                   ) : profileUser?.profileimg ? (
                     <img
                       src={profileUser.profileimg}
@@ -234,41 +223,21 @@ const Profile = () => {
                       }}
                     />
                   ) : (
-                    <div className="flex items-center justify-center w-full h-full bg-linear-to-br from-blue-400 to-blue-600 text-white font-bold text-xl uppercase">
+                    <span className="text-white font-bold text-3xl uppercase">
                       {initial}
-                    </div>
+                    </span>
                   )}
                 </div>
 
-                {/* Edit Avatar Button */}
-                {!userId && (
+                {isOwnProfile && (
                   <label
                     htmlFor="avatar-upload"
-                    className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 cursor-pointer bg-blue-600 hover:bg-blue-700 p-2 rounded-full shadow-lg transition"
-                    title="Change profile picture"
+                    className="absolute bottom-0 right-0 cursor-pointer bg-blue-600 hover:bg-blue-700 p-2 rounded-full shadow-lg transition"
                   >
                     {avatarLoading ? (
-                      <svg
-                        className="h-4 w-4 animate-spin text-white"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="9"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M12 3a9 9 0 0 1 9 9h-3a6 6 0 0 0-6-6V3z"
-                        />
-                      </svg>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <CiEdit className="h-5 w-5 text-white" />
+                      <CiEdit className="h-4 w-4 text-white" />
                     )}
                     <input
                       id="avatar-upload"
@@ -276,21 +245,21 @@ const Profile = () => {
                       accept="image/*"
                       onChange={handleAvatarChange}
                       className="hidden"
+                      disabled={avatarLoading}
                     />
                   </label>
                 )}
               </div>
             </div>
 
-            {/* Content Area */}
+            {/* Content */}
             {profileLoading ? (
               <div className="space-y-4">
                 <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
                 <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
                 <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
               </div>
-            ) : editing && !userId ? (
-              // Edit Form
+            ) : editing && isOwnProfile ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
@@ -312,8 +281,6 @@ const Profile = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-
-                {/* Buttons */}
                 <div className="flex gap-3 mt-4">
                   <Button
                     type="button"
@@ -328,21 +295,12 @@ const Profile = () => {
                     disabled={loading}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 transition"
                   >
-                    {loading ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="h-4 w-4 border-2 border-white border-t-transparent border-b-transparent rounded-full animate-spin" />
-                        <span>Saving...</span>
-                      </div>
-                    ) : (
-                      "Save Changes"
-                    )}
+                    {loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </form>
             ) : (
-              // Profile Details View
-              <div className="space-y-4 text-slate-800">
-                {/* Firstname & Lastname */}
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <ProfileInfoItem
                     label="Firstname"
@@ -353,28 +311,55 @@ const Profile = () => {
                     value={profileUser?.lastname || "-"}
                   />
                 </div>
-                {/* Username */}
                 <ProfileInfoItem
                   label="Username"
                   value={`@${profileUser?.username || "-"}`}
                 />
-                {/* Email */}
                 <ProfileInfoItem
                   label="Email"
                   value={profileUser?.email || "-"}
                 />
-
-                {/* Edit Button */}
-                {!userId && (
+                {isOwnProfile && (
                   <Button
                     type="button"
                     onClick={() => setEditing(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 shadow-md transition active:scale-95"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 transition"
                   >
                     <CiEdit className="inline-block mr-2 h-5 w-5" />
                     Update Profile
                   </Button>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Posts */}
+          <div className="mt-6 bg-white rounded-3xl shadow-lg p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">
+              {isOwnProfile ? "My Posts" : "Posts"}
+            </h2>
+            {postsLoading ? (
+              <div className="space-y-3">
+                <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+              </div>
+            ) : posts.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">
+                No posts yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <div
+                    key={post._id}
+                    className="rounded-xl border border-gray-100 p-4 shadow-sm"
+                  >
+                    <h3 className="font-bold text-gray-800">{post.title}</h3>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {post.description}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

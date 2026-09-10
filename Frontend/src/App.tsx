@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import axios from "axios";
-
 import Posts from "./pages/Post";
 import Login from "./pages/Login";
 import Signup from "./pages/SignUp";
@@ -21,7 +20,6 @@ const App = () => {
   const is_User = async () => {
     const token = localStorage.getItem("token");
 
-    // No token means the user is not logged in
     if (!token) {
       logout();
       return;
@@ -43,7 +41,6 @@ const App = () => {
     }
   };
 
-  // Show splash/loading screen while checking authentication
   if (isLogin === null) {
     return <Loading />;
   }
@@ -55,6 +52,7 @@ const App = () => {
         <Route path="/" element={<Posts />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<Profile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Redirect login/signup pages to home */}
         <Route path="/login" element={<Navigate to="/" replace />} />
@@ -72,7 +70,11 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      <Route
+        path="/forgot-password"
+        element={<Navigate to="/login" replace />}
+      />
 
       {/* Unknown unauthenticated route */}
       <Route path="*" element={<Navigate to="/login" replace />} />
