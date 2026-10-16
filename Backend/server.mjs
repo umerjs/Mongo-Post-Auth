@@ -13,7 +13,7 @@ const app = express();
 const port = process.env.PORT || 2002;
 
 const corsOptions = {
-  origin: ["https://mongo-post-auth-frn.vercel.app", "http://localhost:3003"],
+  origin: ["https://mongo-post-auth-frn.vercel.app", "http://localhost:3003", "http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   credentials: true,
 };
